@@ -1,0 +1,23 @@
+{
+  "name": "ultrasonic-experiments-server",
+  "version": "1.0.0",
+  "description": "Testing server written in NodeJS for ultrasonic experiment data API",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MCEC-Vex/ultrasonic-experiments-server.git"
+  },
+  "author": "Techdoodle",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/MCEC-Vex/ultrasonic-experiments-server/issues"
+  },
+  "homepage": "https://github.com/MCEC-Vex/ultrasonic-experiments-server#readme",
+  "dependencies": {
+    "ws": "^7.3.0"
+  }
+}
