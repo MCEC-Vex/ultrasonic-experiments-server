@@ -18,6 +18,8 @@
   },
   "homepage": "https://github.com/MCEC-Vex/ultrasonic-experiments-server#readme",
   "dependencies": {
-    "ws": "^7.3.0"
+    "serialport": "^9.0.4",
+    "ws": "^7.4.2",
+    "yargs": "^16.2.0"
   }
 }

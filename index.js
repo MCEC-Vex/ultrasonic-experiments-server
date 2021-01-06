@@ -1,38 +1,66 @@
 const WebSocket = require('ws');
+const SerialPort = require('serialport');
+const Readline = require('@serialport/parser-readline');
+const {argv} = require('yargs').option('port', {
+    alias: 'p',
+    type: 'string',
+    description: 'The path of the serial port to use'
+});
 
-const wss = new WebSocket.Server({ port: 8090 });
-
-function sendPacket(ws, data)
+if(!argv.port)
 {
-    ws.send(JSON.stringify(data));
+    console.error('Missing port argument!');
+    return;
 }
 
-wss.on('connection', (ws) =>
+const port = new SerialPort(argv.port, {
+    baudRate: 115200
+});
+port.on('error', err =>
 {
-    console.log('Got new client!');
+    console.log('Error: ', err.message);
+});
+port.on('open',() =>
+{
+    console.log('Port opened!');
     
-    sendPacket(ws, {
-        type: 'capabilities',
-        hasMotor: true,
-        sensors: [0.0]
-    });
-    
-    let readingInterval = setInterval(() =>
+    const wss = new WebSocket.Server({ port: 8090 });
+    let capabilities = null;
+    wss.on('connection', ws =>
     {
-        sendPacket(ws, {
-            type: 'reading',
-            sensor: 0,
-            data: Math.floor((Math.random() * 100000))
+        console.log('Got websocket connection');
+        if(capabilities !== null)
+        {
+            ws.send(JSON.stringify(capabilities));
+        }
+    
+        ws.on('message', message =>
+        {
+            console.log('Received: %s', message);
         });
-    }, 1000);
+        ws.on('close', () =>
+        {
+            console.log('Lost client!');
+        });
+    });
     
-    ws.on('message', (message) =>
+    const lineStream = port.pipe(new Readline({delimiter: '\r\n'}));
+    lineStream.on('data', line =>
     {
-        console.log('Received: %s', message);
+        console.log(`Got line: ${JSON.stringify(line)}`);
+        if(line.startsWith('capabilities,'))
+        {
+            const [hasMotor, ...offsets] = line.split(',').splice(1);
+            capabilities = {
+                hasMotor: hasMotor === '1',
+                sensors: offsets.map(o => Number(o))
+            };
+            console.log(capabilities);
+        }
     });
-    ws.on('close', () =>
+    
+    setTimeout(() =>
     {
-        console.log('Lost client!');
-        clearInterval(readingInterval);
-    });
+        port.write('capabilities\n');
+    }, 1000);
 });
