@@ -31,11 +31,19 @@ port.on('open',() =>
         console.log('Got websocket connection');
         if(capabilities !== null)
         {
-            ws.send(JSON.stringify(capabilities));
+            ws.send(JSON.stringify({
+                type: 'capabilities',
+                ...capabilities
+            }));
         }
     
         ws.on('message', message =>
         {
+            const data = JSON.parse(message);
+            if(data.type === 'pollrate')
+            {
+                port.write(`poll,${data.sensor},${data.enabled},${data.interval},${data.offset}\n`);
+            }
             console.log('Received: %s', message);
         });
         ws.on('close', () =>
@@ -44,10 +52,10 @@ port.on('open',() =>
         });
     });
     
+    let pingTime = null;
     const lineStream = port.pipe(new Readline({delimiter: '\r\n'}));
     lineStream.on('data', line =>
     {
-        console.log(`Got line: ${JSON.stringify(line)}`);
         if(line.startsWith('capabilities,'))
         {
             const [hasMotor, ...offsets] = line.split(',').splice(1);
@@ -55,7 +63,27 @@ port.on('open',() =>
                 hasMotor: hasMotor === '1',
                 sensors: offsets.map(o => Number(o))
             };
+            console.log('Capabilities:');
             console.log(capabilities);
+        }
+        else if(line === 'pong')
+        {
+            if(pingTime !== null)
+            {
+                console.log(`Got reply in ${Date.now() - pingTime}ms`);
+            }
+        }
+        else if(line.startsWith('measurement,'))
+        {
+            const [sensor,microseconds] = line.split(',').splice(1).map(v => Number(v));
+            wss.clients.forEach(client =>
+            {
+                client.send(JSON.stringify({
+                    type: 'reading',
+                    sensor,
+                    data: microseconds
+                }));
+            });
         }
     });
     
