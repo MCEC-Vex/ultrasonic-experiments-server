@@ -73,7 +73,7 @@ port.on('open',() =>
                 console.log(`Got reply in ${Date.now() - pingTime}ms`);
             }
         }
-        else if(line.startsWith('measurement,'))
+        else if(line.startsWith('m,'))
         {
             const [sensor,microseconds] = line.split(',').splice(1).map(v => Number(v));
             wss.clients.forEach(client =>
